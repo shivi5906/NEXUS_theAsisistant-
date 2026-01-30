@@ -1,42 +1,235 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+* {
+    box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+body {
+    margin: 0;
+    background: radial-gradient(circle at top, #0b1220, #020617);
+    color: #e5e7eb;
+    font-family: "JetBrains Mono", monospace;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.app {
+    padding: 16px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.panel {
+    background: linear-gradient(145deg,
+            rgba(17, 24, 39, 0.9),
+            rgba(2, 6, 23, 0.9));
+    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.4),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(8px);
 }
 
-.card {
-  padding: 2em;
+.navbar {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: #020617;
+    border-bottom: 1px solid #1f2933;
+    letter-spacing: 0.5px;
 }
 
-.read-the-docs {
-  color: #888;
+.nav-left {
+    font-weight: bold;
+    font-size: 14px;
+    color: #e5e7eb;
+}
+
+.nav-right span {
+    margin-left: 20px;
+    font-size: 13px;
+    color: #9ca3af;
+    cursor: pointer;
+}
+
+.nav-right span:hover {
+    color: #e5e7eb;
+}
+
+.top {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1.2fr;
+    gap: 16px;
+}
+
+.bottom {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 16px;
+    flex: 1;
+}
+
+.voice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+}
+
+.output {
+    display: flex;
+    flex-direction: column;
+}
+
+.output-text {
+    flex: 1;
+    margin: 8px 0;
+    padding: 12px;
+    background: linear-gradient(to bottom,
+            #020617,
+            #020617 70%,
+            #01040a);
+    border-radius: 6px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.input {
+    padding: 10px;
+    background: #020617;
+    border: 1px solid #1f2933;
+    color: white;
+    border-radius: 6px;
+}
+
+.apps button {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 10px;
+    background: #020617;
+    color: white;
+    border: 1px solid #1f2933;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.mic {
+    animation: pulse 2.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+
+    50% {
+        transform: scale(1.08);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+}
+
+.status.online {
+    color: #22c55e;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+}
+
+.stats p {
+    font-size: 12px;
+    opacity: 0.75;
+}
+
+.voice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.voice-wave {
+    display: flex;
+    gap: 6px;
+    height: 48px;
+}
+
+.voice-wave span {
+    width: 6px;
+    background: linear-gradient(to top,
+            #38bdf8,
+            #818cf8);
+    border-radius: 4px;
+    animation: idleWave 1.8s infinite ease-in-out;
+    opacity: 0.7;
+}
+
+/* Speaking animation */
+.voice-wave.speaking span {
+    animation: speakWave 1s infinite ease-in-out;
+    opacity: 1;
+}
+
+/* Idle animation */
+@keyframes idleWave {
+
+    0%,
+    100% {
+        height: 12px;
+    }
+
+    50% {
+        height: 24px;
+    }
+}
+
+/* Speaking animation */
+@keyframes speakWave {
+    0% {
+        height: 10px;
+    }
+
+    25% {
+        height: 40px;
+    }
+
+    50% {
+        height: 18px;
+    }
+
+    75% {
+        height: 46px;
+    }
+
+    100% {
+        height: 12px;
+    }
+}
+
+/* Offset animation delays */
+.voice-wave span:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.voice-wave span:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.voice-wave span:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.voice-wave span:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+.voice-wave span:nth-child(5) {
+    animation-delay: 0.4s;
 }
