@@ -1,0 +1,42 @@
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.0
+
+# Computer Vision & OCR
+opencv-python==4.8.1.78
+easyocr==1.7.1
+Pillow==10.1.0
+
+# Object Detection
+ultralytics==8.0.220
+torch==2.1.1
+torchvision==0.16.1
+
+# Face/Pose Detection
+mediapipe==0.10.8
+
+# ML/DL
+numpy==1.24.3
+scikit-learn==1.3.2
+lightgbm==4.1.0
+
+# LLM Integration
+ollama==0.1.6
+langchain==0.1.0
+
+# Audio (for later days)
+openai-whisper==20231117
+pvporcupine==3.0.0
+
+# Utils
+python-dotenv==1.0.0
+requests==2.31.0
+websockets==12.0
+
+# Database - FIXED
+pysqlcipher3==1.2.0
+
+# Automation (for later)
+pyautogui==0.9.54
