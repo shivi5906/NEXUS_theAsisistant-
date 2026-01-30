@@ -1,182 +1,144 @@
-from __future__ import annotations
-
-import base64
-import io
-import asyncio
-from typing import Any, Dict, List, Optional, Tuple
-
-import cv2
-import numpy as np
-from PIL import Image
-from loguru import logger
 import easyocr
+import pyautogui
+import psutil
+from PIL import Image
+import numpy as np
+from datetime import datetime
 
+import platform
+import io
 
 class ScreenAnalyzer:
-    """
-    Analyzes a screenshot to extract text, detect application type,
-    content type, and possible issues (errors/exceptions).
-    """
-
-    ERROR_KEYWORDS = ("error", "exception", "failed", "traceback")
-
-    def __init__(
-        self,
-        languages: Optional[List[str]] = None,
-        gpu: bool = True,
-    ) -> None:
-        self.languages = languages or ["en"]
-        self.gpu = gpu
-
+    def __init__(self):
+        # Initialize EasyOCR with English language
+        self.reader = easyocr.Reader(['en'], gpu=False)  # Set gpu=True if you have CUDA
+        self.last_activity_time = datetime.now()
+        self.previous_text = ""
+        
+    def capture_screen(self) -> Image.Image:
+        """Capture current screen"""
+        screenshot = pyautogui.screenshot()
+        return screenshot
+    
+    def extract_text_ocr(self, image: Image.Image) -> str:
+        """Extract text from image using EasyOCR"""
+        # Convert PIL to numpy array
+        img_array = np.array(image)
+        
+        # Perform OCR
+        results = self.reader.readtext(img_array, detail=0)  # detail=0 returns only text
+        
+        # Join all text with spaces
+        extracted_text = " ".join(results)
+        return extracted_text
+    
+    def detect_active_app(self) -> dict:
+        """Detect currently active application"""
         try:
-            self.reader = easyocr.Reader(
-                self.languages,
-                gpu=self.gpu,
-                verbose=False,
-            )
-            logger.info(f"EasyOCR initialized (GPU={self.gpu})")
-        except Exception as e:
-            logger.exception("Failed to initialize EasyOCR, falling back to CPU")
-            self.reader = easyocr.Reader(self.languages, gpu=False, verbose=False)
-
-    # ----------------------------- Public API -----------------------------
-
-    async def analyze(
-        self,
-        screenshot_base64: str,
-        metadata: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """
-        Main async analysis method.
-        """
-        try:
-            image = self._decode_image(screenshot_base64)
-        except Exception as e:
-            logger.exception("Image decoding failed")
-            return self._error_response("Invalid image data")
-
-        try:
-            preprocessed = await asyncio.to_thread(self._preprocess_image, image)
-            ocr_results = await asyncio.to_thread(self._run_ocr, preprocessed)
-        except Exception as e:
-            logger.exception("OCR processing failed")
-            return self._error_response("OCR failed")
-
-        text_blocks = self._format_text_blocks(ocr_results)
-        full_text = " ".join(tb["text"] for tb in text_blocks).lower()
-
-        app_name = self._detect_application(metadata)
-        content_type = self._detect_content_type(
-            full_text=full_text,
-            window_title=metadata.get("window_title", ""),
-        )
-        detected_issues = self._detect_issues(text_blocks)
-
-        return {
-            "app_name": app_name,
-            "content_type": content_type,
-            "text_blocks": text_blocks,
-            "detected_issues": detected_issues,
-        }
-
-    # ----------------------------- OCR & Image -----------------------------
-
-    def _decode_image(self, screenshot_base64: str) -> np.ndarray:
-        image_bytes = base64.b64decode(screenshot_base64)
-        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-        return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-
-    def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
-        """
-        Light preprocessing for speed + OCR accuracy.
-        """
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        gray = cv2.bilateralFilter(gray, 9, 75, 75)
-        _, thresh = cv2.threshold(
-            gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-        )
-        return thresh
-
-    def _run_ocr(self, image: np.ndarray) -> List[Any]:
-        return self.reader.readtext(
-            image,
-            detail=1,
-            paragraph=False,
-        )
-
-    # ----------------------------- Detection Logic -----------------------------
-
-    def _detect_application(self, metadata: Dict[str, Any]) -> str:
-        title = metadata.get("window_title", "").lower()
-
-        if "chrome" in title or "edge" in title or "firefox" in title:
-            return "Browser"
-        if "vscode" in title or "visual studio" in title:
-            return "VS Code"
-        if "terminal" in title or "powershell" in title:
-            return "Terminal"
-        if "slack" in title:
-            return "Slack"
-        if "outlook" in title or "gmail" in title:
-            return "Email Client"
-        if "word" in title or "docs" in title:
-            return "Document Editor"
-
-        return "Unknown"
-
-    def _detect_content_type(self, full_text: str, window_title: str) -> str:
-        title = window_title.lower()
-
-        if any(k in full_text for k in ["def ", "{", "};", "#include", "import "]):
-            return "code"
-        if any(k in full_text for k in ["from:", "to:", "subject:"]):
-            return "email"
-        if "http" in full_text or "www" in full_text or "browser" in title:
-            return "browser"
-        if len(full_text.split()) > 50:
-            return "document"
-
-        return "unknown"
-
-    def _detect_issues(self, text_blocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        issues = []
-
-        for block in text_blocks:
-            text_lower = block["text"].lower()
-            if any(keyword in text_lower for keyword in self.ERROR_KEYWORDS):
-                issues.append(
-                    {
-                        "text": block["text"],
-                        "bbox": block["bbox"],
-                        "severity": "error",
-                    }
-                )
-
-        return issues
-
-    # ----------------------------- Helpers -----------------------------
-
-    def _format_text_blocks(self, ocr_results: List[Any]) -> List[Dict[str, Any]]:
-        blocks = []
-
-        for bbox, text, confidence in ocr_results:
-            blocks.append(
-                {
-                    "text": text,
-                    "confidence": float(confidence),
-                    "bbox": self._normalize_bbox(bbox),
+            if platform.system() == "Windows":
+                import ctypes
+                hwnd = ctypes.windll.user32.GetForegroundWindow()
+                length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                buff = ctypes.create_unicode_buffer(length + 1)
+                ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
+                app_name = buff.value
+                return {"app_name": app_name, "window_title": app_name}
+            
+            elif platform.system() == "Darwin":  # macOS
+                from AppKit import NSWorkspace
+                active_app = NSWorkspace.sharedWorkspace().activeApplication()
+                return {
+                    "app_name": active_app['NSApplicationName'],
+                    "window_title": active_app.get('NSApplicationName', '')
                 }
-            )
-
-        return blocks
-
-    def _normalize_bbox(self, bbox: List[List[float]]) -> List[Tuple[int, int]]:
-        return [(int(x), int(y)) for x, y in bbox]
-
-    def _error_response(self, message: str) -> Dict[str, Any]:
+            
+            elif platform.system() == "Linux":
+                # Linux requires wmctrl or xdotool
+                import subprocess
+                result = subprocess.run(['xdotool', 'getactivewindow', 'getwindowname'], 
+                                      capture_output=True, text=True)
+                return {"app_name": "Unknown", "window_title": result.stdout.strip()}
+                
+        except Exception as e:
+            return {"app_name": "Unknown", "window_title": f"Error: {str(e)}"}
+    
+    def detect_errors(self, text: str) -> list:
+        """Detect common error patterns in screen text"""
+        error_keywords = [
+            "error", "exception", "failed", "traceback", 
+            "syntaxerror", "typeerror", "nameerror", "undefined",
+            "cannot", "unable", "forbidden", "denied"
+        ]
+        
+        detected_errors = []
+        text_lower = text.lower()
+        
+        for keyword in error_keywords:
+            if keyword in text_lower:
+                detected_errors.append(keyword.capitalize())
+        
+        return list(set(detected_errors))  # Remove duplicates
+    
+    def detect_stuck(self, current_text: str) -> int:
+        """Detect if user is stuck (no text change)"""
+        # Compare with previous text
+        if current_text == self.previous_text:
+            idle_time = (datetime.now() - self.last_activity_time).total_seconds()
+        else:
+            self.last_activity_time = datetime.now()
+            self.previous_text = current_text
+            idle_time = 0
+        
+        return int(idle_time)
+    
+    def get_system_stats(self) -> dict:
+        """Get CPU and memory usage"""
         return {
-            "app_name": "Unknown",
-            "content_type": "unknown",
-            "text_blocks": [],
-            "detected_issues": [{"message": message}],
+            "cpu_percent": psutil.cpu_percent(interval=0.1),
+            "memory_percent": psutil.virtual_memory().percent
         }
+    
+    def analyze(self) -> dict:
+        """Main analysis pipeline - captures screen and extracts all metadata"""
+        
+        # Step 1: Capture screen
+        screenshot = self.capture_screen()
+        
+        # Step 2: OCR text extraction
+        ocr_text = self.extract_text_ocr(screenshot)
+        
+        # Step 3: Detect active app
+        app_info = self.detect_active_app()
+        
+        # Step 4: Detect errors
+        errors = self.detect_errors(ocr_text)
+        
+        # Step 5: Detect stuck/idle
+        idle_time = self.detect_stuck(ocr_text)
+        
+        # Step 6: System stats
+        sys_stats = self.get_system_stats()
+        
+        # Build metadata
+        metadata = {
+            "timestamp": datetime.now().isoformat(),
+            "app_name": app_info["app_name"],
+            "window_title": app_info["window_title"],
+            "ocr_text": ocr_text[:500],  # Limit to 500 chars
+            "errors": errors,
+            "idle_time": idle_time,
+            "cpu_percent": sys_stats["cpu_percent"],
+            "memory_percent": sys_stats["memory_percent"],
+            "session_id": "default"  # Will be set by main app
+        }
+        
+        # Screenshot is NOT saved - privacy first!
+        return metadata
+
+
+# Singleton instance
+analyzer = ScreenAnalyzer()
+
+def capture_and_analyze() -> dict:
+    """Main interface for FastAPI"""
+    return analyzer.analyze()

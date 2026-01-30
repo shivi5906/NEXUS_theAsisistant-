@@ -3,7 +3,13 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 pydantic==2.5.0
-
+langchain 
+langchain-community 
+chromadb 
+ollama
+pyautogui 
+psutil
+pywin32
 # Computer Vision & OCR
 opencv-python==4.8.1.78
 easyocr==1.7.1
