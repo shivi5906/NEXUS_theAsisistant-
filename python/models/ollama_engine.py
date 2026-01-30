@@ -1,8 +1,9 @@
 from langchain_ollama import OllamaLLM, OllamaEmbeddings
 from langchain_chroma import Chroma
-from langchain_community.chains import RetrievalQA
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 import os
 from datetime import datetime
 
@@ -25,9 +26,10 @@ class NexusOllamaEngine:
         self.setup_rag_chain()
     
     def setup_rag_chain(self):
-        """Setup retrieval-augmented generation chain"""
-        prompt_template = """You are NEXUS, an AI assistant for people with ADHD. 
+        """Setup retrieval-augmented generation chain (modern approach)"""
         
+        prompt = ChatPromptTemplate.from_template("""You are NEXUS, an AI assistant for people with ADHD. 
+
 Context from past sessions:
 {context}
 
@@ -40,17 +42,20 @@ Provide a helpful, concise suggestion (max 2 sentences). Focus on:
 - Suggesting next actionable step
 - Being encouraging but not intrusive
 
-Response:"""
+Response:""")
         
-        PROMPT = PromptTemplate(
-            template=prompt_template, input_variables=["context", "question"]
-        )
+        # Create retriever
+        retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
         
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type="stuff",
-            retriever=self.vectorstore.as_retriever(search_kwargs={"k": 3}),
-            chain_type_kwargs={"prompt": PROMPT}
+        # Modern RAG chain using LCEL (LangChain Expression Language)
+        def format_docs(docs):
+            return "\n\n".join([doc.page_content for doc in docs])
+        
+        self.rag_chain = (
+            {"context": retriever | format_docs, "question": RunnablePassthrough()}
+            | prompt
+            | self.llm
+            | StrOutputParser()
         )
     
     def add_memory(self, metadata: dict):
@@ -67,7 +72,6 @@ Response:"""
         )
         
         self.vectorstore.add_documents([doc])
-        self.vectorstore.persist()
     
     def get_suggestion(self, metadata: dict) -> dict:
         """Generate real-time suggestion based on current metadata + RAG context"""
@@ -81,7 +85,7 @@ Response:"""
         """
         
         # Get RAG-enhanced response
-        response = self.qa_chain.run(query)
+        response = self.rag_chain.invoke(query)
         
         # Determine if notification needed
         show_notification = (
@@ -105,7 +109,7 @@ Response:"""
         session_text = "\n".join([doc.page_content for doc in docs])
         
         summary_prompt = f"Summarize this work session in 2-3 sentences:\n{session_text}"
-        summary = self.llm(summary_prompt)
+        summary = self.llm.invoke(summary_prompt)
         
         return summary
 
