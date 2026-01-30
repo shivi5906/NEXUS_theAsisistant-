@@ -6,13 +6,20 @@ function App() {
 
             {/* Navbar */}
             <div className="navbar">
-                <div className="nav-left">NEXUS</div>
+                <div className="nav-left">
+                    <div className="profile">
+                        <span>PS</span>
+                    </div>
+              </div>
+
+                <div className="nav-center absolute">NEXUS</div>
+
                 <div className="nav-right">
-                    <span>Account</span>
-                    <span>Data</span>
-                    <span>Settings</span>
+                    <button className="nav-btn">Data</button>
+                    <button className="nav-btn">Settings</button>
                 </div>
             </div>
+
 
             {/* Top row */}
             <div className="top">

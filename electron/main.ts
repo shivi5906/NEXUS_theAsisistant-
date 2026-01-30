@@ -12,8 +12,10 @@ function loadReactApp() {
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1000,
-        height: 700,
+        width: 1200,
+        height: 800,
+        minWidth: 1100,
+        minHeight: 800,
     });
 
     loadReactApp();
