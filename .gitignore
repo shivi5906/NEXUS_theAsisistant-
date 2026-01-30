@@ -1,0 +1,5 @@
+# Root dependencies
+node_modules/
+
+# Electron build artifacts
+electron/dist/

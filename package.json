@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "electron": "^40.1.0"
+  },
+  "scripts": {
+    "electron": "electron ./electron/main.ts"
+  }
+}
