@@ -1,1 +1,200 @@
-this is the basic first readme of this 
+# 🧠 NEXUS — Proactive AI Assistant for ADHD  
+### v0 (GenAI-First MVP)
+
+> **NEXUS** is a privacy-first, proactive AI assistant built to support people with ADHD by understanding on-screen context, user behavior, and attention patterns — and intervening at the *right moment*.
+
+Unlike traditional assistants that wait for commands, NEXUS observes context and helps **before** the user realizes they’re stuck, distracted, or missing something important.
+
+---
+
+## 🎯 Problem Statement
+
+People with ADHD often struggle with:
+- Getting stuck on a task or screen without awareness  
+- Missing obvious errors after long focus loops  
+- Losing context when switching apps or tasks  
+- Poorly timed interruptions from existing tools  
+
+Most productivity tools are **reactive**.  
+NEXUS is designed to be **context-aware and proactive**.
+
+---
+
+## 💡 Core Idea
+
+NEXUS acts as a **cognitive co-pilot** that:
+1. Understands what the user is doing
+2. Infers their current mental state
+3. Decides *if* help is needed
+4. Intervenes only when it actually helps
+
+The key challenge is **timing**, not intelligence.
+
+---
+
+## 🚀 Why GenAI for v0?
+
+The original design included multiple deep learning models:
+- Attention-based LSTMs
+- Contextual CNNs
+- Reinforcement Learning for interruption timing
+
+While powerful, this stack is **too heavy for a 7-day MVP** and delays real user feedback.
+
+### NEXUS v0 deliberately swaps the DL layer with a **GenAI reasoning layer**.
+
+This allows us to:
+- Ship fast and iterate quickly
+- Reason over ambiguous, real-world context
+- Focus on *behavior correctness* rather than model training
+- Validate whether proactive assistance actually helps ADHD users
+
+> Deep Learning is postponed — not abandoned.
+
+---
+
+## 🏗️ System Architecture (v0)
+
+### 1. Perception Layer (Local, Privacy-First)
+- **Screen OCR** (text extraction)
+- **Active app detection**
+- **Screen change & stuck detection**
+- **Error pattern detection**
+- **Basic behavior signals** (time on task, inactivity)
+
+All raw data stays on device.
+
+---
+
+### 2. Context Fusion Layer
+- Converts raw signals into structured summaries
+- Example:
+  - What app is open
+  - What text is visible
+  - Whether the screen is static
+  - How long the user has been in the same state
+
+This layer is deterministic and lightweight.
+
+---
+
+### 3. GenAI Reasoning Layer (v0 Intelligence)
+- Consumes structured context (not raw data)
+- Infers user state:
+  - Focused
+  - Stuck
+  - Distracted
+  - Error-looping
+- Decides:
+  - Should I interrupt?
+  - Is now the right moment?
+  - What is the *minimal* helpful action?
+
+This replaces early-stage deep learning models.
+
+---
+
+### 4. Action Layer
+- Subtle nudges
+- Error reminders
+- Context-aware prompts
+- Focus redirection
+- Never chatty, never intrusive
+
+---
+
+## 🔐 Privacy-First Design
+
+- No raw screen recordings stored
+- No raw camera frames saved
+- OCR and perception run locally
+- Only high-level summaries are reasoned over
+- Personal data is never shared or centralized
+
+NEXUS is trained **for the user, not on the user**.
+
+---
+
+## 🧰 Tech Stack
+
+### Frontend
+- Electron
+- Lightweight notification UI
+- Minimal cognitive load design
+
+### Backend
+- FastAPI (Python)
+- EasyOCR for text extraction
+- Heuristic signal analysis
+- GenAI API for reasoning (swappable layer)
+
+### Design Goals
+- Near real-time feedback
+- Explainable interventions
+- Neurodiversity-aligned UX
+
+---
+
+## 👥 Team
+
+- **Person 1** — Frontend / Electron / UX
+- **Person 2** — Backend / AI / Signal Processing
+
+---
+
+## 🧪 Current Focus (v0 Scope)
+
+- Screen analyzer pipeline
+- OCR → semantic summarization
+- App and context detection
+- Stuck & error heuristics
+- GenAI-driven decision logic
+- End-to-end proactive demo
+
+---
+
+## 🛣️ Roadmap
+
+### v0 — GenAI-First MVP (This Repo)
+- Heuristic perception
+- GenAI reasoning
+- Proactive assistance validation
+- Fast iteration & user feedback
+
+### v1 — Hybrid Intelligence
+- Replace heuristics with lightweight learned models
+- Temporal modeling for attention patterns
+- Personalized behavior embeddings
+- Partial on-device inference
+
+### v2 — Deep Learning & RL
+- Attention-based sequence models
+- Reinforcement learning for interruption timing
+- Adaptive reward signals per user
+- Reduced GenAI dependency
+
+### v3 — Neuro-Symbolic Assistant
+- Learned perception + symbolic reasoning
+- Fully on-device intelligence
+- Long-term cognitive modeling
+- Assistive AI aligned with neurodiversity research
+
+---
+
+## 🌌 Long-Term Vision
+
+> NEXUS is not a chatbot.  
+> It is a **cognitive layer between the user and their digital world**.
+
+The goal is not productivity at all costs —  
+but **clarity, momentum, and self-trust** for neurodivergent minds.
+
+---
+
+## 📌 Status
+
+**NEXUS v0 is an experimental MVP.**  
+This repository focuses on validating *when* and *how* to help —  
+before scaling *how intelligently* it learns.
+
+---
