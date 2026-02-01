@@ -2,10 +2,11 @@ import "./App.css";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./auth/useAuth";
 import Login from "./pages/Login";
+import type { ReactNode } from "react";
 
 // ---------------- DASHBOARD ----------------
 function Dashboard() {
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     return (
         <div className="app">
             <div className="app-shell">
@@ -13,7 +14,7 @@ function Dashboard() {
                 <div className="navbar">
                     <div className="nav-left">
                         <div className="profile">
-                            <span>PS</span>
+                            <img src={user?.picture} alt="profile" />
                         </div>
                     </div>
 
@@ -102,9 +103,18 @@ function Dashboard() {
     );
 }
 
+function ProtectedRoute({ children }: { children: ReactNode }) {
+    const auth = useAuth();
+
+    if (!auth.isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return children;
+}
+
 // ---------------- ROUTES ----------------
 export default function App() {
-    const { isAuthenticated } = useAuth();
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
@@ -112,9 +122,9 @@ export default function App() {
             <Route
                 path="/"
                 element={
-                    isAuthenticated
-                        ? <Dashboard />
-                        : <Navigate to="/login" replace />
+                    <ProtectedRoute>
+                        <Dashboard />
+                    </ProtectedRoute>
                 }
             />
 

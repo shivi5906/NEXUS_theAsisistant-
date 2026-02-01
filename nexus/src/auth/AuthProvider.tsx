@@ -1,25 +1,51 @@
-import { useState } from "react";
-import type { ReactNode } from "react";
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-    const [isAuthenticated, setIsAuthenticated] = useState(
-        () => localStorage.getItem("nexus_auth") === "true"
-    );
+const STORAGE_KEY = "nexus_auth";
 
-    const login = () => {
-        localStorage.setItem("nexus_auth", "true");
-        setIsAuthenticated(true);
+type User = {
+    name: string;
+    email: string;
+    picture: string;
+};
+
+const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return;
+
+        const parsed = JSON.parse(stored);
+        setUser(parsed.user);
+    }, []);
+
+    const loginWithGoogle = (userData: User) => {
+        setUser(userData);
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ user: userData })
+        );
     };
 
     const logout = () => {
-        localStorage.removeItem("nexus_auth");
-        setIsAuthenticated(false);
+        setUser(null);
+        localStorage.removeItem(STORAGE_KEY);
     };
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+        <AuthContext.Provider
+            value={{
+                isAuthenticated: !!user,
+                user,
+                loginWithGoogle,
+                logout,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
-}
+};
+
+export default AuthProvider;
