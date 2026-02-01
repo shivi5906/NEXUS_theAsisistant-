@@ -4,7 +4,7 @@ Handles task breakdown, storage, and intelligent scheduling for ADHD users
 Integrates with Ollama for intelligent decomposition and ChromaDB for storage
 """
 
-from typing import List, Dict, Optional, Any, Literal
+from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict, field
 from enum import Enum
@@ -64,8 +64,8 @@ class Subtask:
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     time_spent_minutes: int = 0
-    stuck_count: int = 0  # How many times user got stuck on this
-    requires_state: Optional[CognitiveState] = None  # Best cognitive state for this task
+    stuck_count: int = 0
+    requires_state: Optional[CognitiveState] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for storage"""
@@ -102,7 +102,7 @@ class Task:
     created_at: datetime = field(default_factory=datetime.now)
     deadline: Optional[datetime] = None
     tags: List[str] = field(default_factory=list)
-    context: Optional[str] = None  # Why this task matters (motivation)
+    context: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for storage"""
@@ -142,7 +142,7 @@ class Task:
         return min(pending, key=lambda x: x.order) if pending else None
 
 
-# Pydantic model for Ollama JSON output parsing
+# Pydantic models for Ollama JSON output parsing
 class SubtaskSchema(BaseModel):
     """Schema for subtask generation"""
     title: str = Field(description="Short, action-oriented subtask title (max 60 chars)")
@@ -185,8 +185,8 @@ class TaskManager:
         self.llm = ChatOllama(
             model=ollama_model,
             base_url=ollama_base_url,
-            temperature=0.7,  # Slightly creative for task breakdown
-            format="json"  # Force JSON output
+            temperature=0.7,
+            format="json"
         )
         
         # Initialize ChromaDB
@@ -195,7 +195,7 @@ class TaskManager:
             settings=Settings(anonymized_telemetry=False)
         )
         
-        # Create separate collections for tasks and patterns
+        # Create separate collections
         self.tasks_collection = self.chroma_client.get_or_create_collection(
             name="nexus_tasks",
             metadata={"description": "Task and subtask storage"}
@@ -318,7 +318,7 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
                 parent_task_id=task_id,
                 title=st_data['title'],
                 description=st_data['description'],
-                estimated_minutes=min(st_data['estimated_minutes'], 30),  # Cap at 30min
+                estimated_minutes=min(st_data['estimated_minutes'], 30),
                 order=idx,
                 requires_state=state
             )
@@ -339,7 +339,7 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         # Store in ChromaDB
         self._store_task(task)
         
-        # Store breakdown reasoning for future learning
+        # Store breakdown reasoning
         self._store_pattern(
             task_id=task_id,
             pattern_type="breakdown",
@@ -353,34 +353,40 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
     # ========================================================================
     
     def _store_task(self, task: Task):
-     """Store task in ChromaDB"""
-     task_dict = task.to_dict()
+        """Store task in ChromaDB with flattened metadata"""
+        task_dict = task.to_dict()
+        
+        # Create searchable document
+        document = f"""Task: {task.title}
+Description: {task.description}
+Priority: {task.priority.value}
+Context: {task.context or 'None'}
+Subtasks: {', '.join([st.title for st in task.subtasks])}"""
+        
+        # FLATTEN metadata for ChromaDB (no nested objects)
+        flat_metadata = {
+            'id': task_dict['id'],
+            'title': task_dict['title'],
+            'description': task_dict['description'],
+            'priority': task_dict['priority'],
+            'status': task_dict['status'],
+            'created_at': task_dict['created_at'],
+            'deadline': task_dict.get('deadline') or '',
+            'context': task_dict.get('context') or '',
+            'tags': ','.join(task_dict.get('tags', [])),
+            'subtasks_json': json.dumps(task_dict['subtasks'])
+        }
+        
+        self.tasks_collection.add(
+            documents=[document],
+            metadatas=[flat_metadata],
+            ids=[task.id]
+        )
     
-    # Create searchable document
-     document = f"""Task: {task.title}
-    Description: {task.description}
-    Priority: {task.priority.value}
-    Context: {task.context or 'None'}
-    Subtasks: {', '.join([st.title for st in task.subtasks])}"""
-    
-    # FLATTEN metadata for ChromaDB (remove nested structures)
-     flat_metadata = {
-        'id': task_dict['id'],
-        'title': task_dict['title'],
-        'description': task_dict['description'],
-        'priority': task_dict['priority'],
-        'status': task_dict['status'],
-        'created_at': task_dict['created_at'],
-        'context': task_dict.get('context') or '',
-        'tags': ','.join(task_dict.get('tags', [])),  # Convert list to string
-        'subtasks_json': json.dumps(task_dict['subtasks'])  # Store as JSON string
-    }
-    
-     self.tasks_collection.add(
-        documents=[document],
-        metadatas=[flat_metadata],
-        ids=[task.id]
-    )
+    def _update_task(self, task: Task):
+        """Update existing task in ChromaDB"""
+        self.tasks_collection.delete(ids=[task.id])
+        self._store_task(task)
     
     def get_task(self, task_id: str) -> Optional[Task]:
         """Retrieve a task by ID"""
@@ -389,13 +395,42 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         if not result['metadatas']:
             return None
         
-        return Task.from_dict(result['metadatas'][0])
+        # Reconstruct full task dict from flattened metadata
+        meta = result['metadatas'][0]
+        task_dict = {
+            'id': meta['id'],
+            'title': meta['title'],
+            'description': meta['description'],
+            'priority': meta['priority'],
+            'status': meta['status'],
+            'created_at': meta['created_at'],
+            'deadline': meta.get('deadline') if meta.get('deadline') else None,
+            'context': meta.get('context', ''),
+            'tags': meta.get('tags', '').split(',') if meta.get('tags') else [],
+            'subtasks': json.loads(meta['subtasks_json'])
+        }
+        
+        return Task.from_dict(task_dict)
     
     def get_all_tasks(self, status: Optional[TaskStatus] = None) -> List[Task]:
         """Get all tasks, optionally filtered by status"""
         result = self.tasks_collection.get()
         
-        tasks = [Task.from_dict(meta) for meta in result['metadatas']]
+        tasks = []
+        for meta in result['metadatas']:
+            task_dict = {
+                'id': meta['id'],
+                'title': meta['title'],
+                'description': meta['description'],
+                'priority': meta['priority'],
+                'status': meta['status'],
+                'created_at': meta['created_at'],
+                'deadline': meta.get('deadline') if meta.get('deadline') else None,
+                'context': meta.get('context', ''),
+                'tags': meta.get('tags', '').split(',') if meta.get('tags') else [],
+                'subtasks': json.loads(meta['subtasks_json'])
+            }
+            tasks.append(Task.from_dict(task_dict))
         
         if status:
             tasks = [t for t in tasks if t.status == status]
@@ -469,11 +504,6 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         self._update_task(task)
         
         return task
-    
-    def _update_task(self, task: Task):
-        """Update existing task in ChromaDB"""
-        self.tasks_collection.delete(ids=[task.id])
-        self._store_task(task)
     
     def delete_task(self, task_id: str) -> bool:
         """Delete a task"""
@@ -567,14 +597,13 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
             if subtask.requires_state == current_state:
                 score += 40
             elif subtask.requires_state == CognitiveState.UNKNOWN:
-                score += 20  # Neutral tasks work anytime
-            # Partial matches
+                score += 20
             elif current_state == CognitiveState.TIRED and subtask.requires_state == CognitiveState.CALM:
-                score += 30  # Calm tasks work when tired
+                score += 30
             elif current_state == CognitiveState.STRESSED and subtask.requires_state in [CognitiveState.CALM, CognitiveState.TIRED]:
-                score += 25  # Easy tasks when stressed
+                score += 25
         else:
-            score += 20  # Unknown state = neutral score
+            score += 20
         
         # Task priority (25 points max)
         priority_scores = {
@@ -585,7 +614,7 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         }
         score += priority_scores.get(task.priority, 10)
         
-        # Order bonus (20 points max) - prefer earlier subtasks
+        # Order bonus (20 points max)
         max_order = max(st.order for st in task.subtasks)
         if max_order > 0:
             order_score = 20 * (1 - (subtask.order / max_order))
@@ -593,7 +622,7 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         else:
             score += 20
         
-        # Stuck penalty (15 points max) - avoid repeatedly stuck tasks
+        # Stuck penalty (15 points max)
         stuck_penalty = min(subtask.stuck_count * 3, 15)
         score += (15 - stuck_penalty)
         
@@ -644,7 +673,7 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         
         # Create micro-subtasks
         micro_subtasks = []
-        for idx, st_data in enumerate(micro_breakdown['subtasks'][:5]):  # Max 5 micro-tasks
+        for idx, st_data in enumerate(micro_breakdown['subtasks'][:5]):
             state = None
             if st_data.get('requires_state'):
                 try:
@@ -655,10 +684,10 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
             micro_subtask = Subtask(
                 id=str(uuid.uuid4()),
                 parent_task_id=task_id,
-                title=f"↳ {st_data['title']}",  # Indent to show it's a micro-task
+                title=f"↳ {st_data['title']}",
                 description=st_data['description'],
-                estimated_minutes=min(st_data['estimated_minutes'], 15),  # Cap at 15min
-                order=stuck_index + idx + 0.1,  # Insert after stuck task
+                estimated_minutes=min(st_data['estimated_minutes'], 15),
+                order=stuck_index + idx + 0.1,
                 requires_state=state
             )
             micro_subtasks.append(micro_subtask)
@@ -666,9 +695,9 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         # Mark original subtask as skipped and insert micro-tasks
         stuck_subtask.status = TaskStatus.SKIPPED
         task.subtasks = (
-            task.subtasks[:stuck_index + 1] +  # Keep everything up to stuck task
-            micro_subtasks +  # Insert micro-tasks
-            task.subtasks[stuck_index + 1:]  # Keep rest
+            task.subtasks[:stuck_index + 1] +
+            micro_subtasks +
+            task.subtasks[stuck_index + 1:]
         )
         
         # Re-number orders
@@ -681,7 +710,7 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         return task
     
     # ========================================================================
-    # PATTERN STORAGE (for future ML/personalization)
+    # PATTERN STORAGE
     # ========================================================================
     
     def _store_pattern(self, task_id: str, pattern_type: str, data: Dict[str, Any]):
@@ -692,9 +721,12 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
         metadata = {
             "task_id": task_id,
             "pattern_type": pattern_type,
-            "timestamp": datetime.now().isoformat(),
-            **data
+            "timestamp": datetime.now().isoformat()
         }
+        # Add simple types only
+        for key, value in data.items():
+            if isinstance(value, (str, int, float, bool)):
+                metadata[key] = value
         
         self.patterns_collection.add(
             documents=[document],
