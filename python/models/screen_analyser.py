@@ -11,7 +11,7 @@ import io
 class ScreenAnalyzer:
     def __init__(self):
         # Initialize EasyOCR with English language
-        self.reader = easyocr.Reader(['en'], gpu=False)  # Set gpu=True if you have CUDA
+        self.reader = easyocr.Reader(['en'], gpu=True)  # Set gpu=True if you have CUDA
         self.last_activity_time = datetime.now()
         self.previous_text = ""
         
