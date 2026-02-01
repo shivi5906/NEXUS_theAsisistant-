@@ -44,16 +44,35 @@ const Login = () => {
     return (
         <div className="login-screen">
             <div className="login-card">
-                <h1 className="login-title">NEXUS</h1>
-                <p className="login-sub">Sign in to continue</p>
+                <div className="login-header">
+                    <h1 className="login-title">NEXUS</h1>
 
-                <button className="login-btn" onClick={() => login()}>
-                    Sign in with Google
+                    <p className="login-tagline">
+                        Your intelligent desktop assistant for focused work.
+                    </p>
+
+                    <p className="login-sub">
+                        Manage tasks, apps, and attention — all in one place.
+                    </p>
+                </div>
+
+                <button
+                    className="login-btn google"
+                    onClick={() => login()}
+                >
+                    <img
+                        src="https://developers.google.com/identity/images/g-logo.png"
+                        alt="Google"
+                    />
+                    <span>Sign in with Google</span>
                 </button>
+
+                <p className="login-footer">
+                    Secure sign-in powered by Google
+                </p>
             </div>
         </div>
     );
-
 };
 
 export default Login;

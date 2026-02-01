@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./auth/useAuth";
 import Login from "./pages/Login";
 import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import Boot from "./pages/Boot";
 
 // ---------------- DASHBOARD ----------------
 function Dashboard() {
@@ -14,7 +16,13 @@ function Dashboard() {
                 <div className="navbar">
                     <div className="nav-left">
                         <div className="profile">
-                            <img src={user?.picture} alt="profile" />
+                            {user?.picture ? (
+                                <img src={user.picture} alt={user.name} />
+                            ) : (
+                                <span className="profile-fallback">
+                                    {user?.name?.[0] ?? "U"}
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -115,6 +123,37 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
 // ---------------- ROUTES ----------------
 export default function App() {
+    const auth = useAuth();
+
+    const [booting, setBooting] = useState(false);
+    const wasAuthenticated = useRef(false);
+
+    useEffect(() => {
+        // Detect logout
+        if (!auth.isAuthenticated) {
+            wasAuthenticated.current = false;
+            return;
+        }
+
+        // Detect login transition
+        if (!wasAuthenticated.current && auth.isAuthenticated) {
+            wasAuthenticated.current = true;
+
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setBooting(true);
+
+            const t = setTimeout(() => {
+                setBooting(false);
+            }, 1200);
+
+            return () => clearTimeout(t);
+        }
+    }, [auth.isAuthenticated]);
+
+    if (auth.isAuthenticated && booting) {
+        return <Boot />;
+    }
+
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
