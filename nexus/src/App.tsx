@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 
 // ---------------- DASHBOARD ----------------
 function Dashboard() {
+    const { logout } = useAuth();
     return (
         <div className="app">
             <div className="app-shell">
@@ -21,6 +22,9 @@ function Dashboard() {
                     <div className="nav-right">
                         <button className="nav-btn">Data</button>
                         <button className="nav-btn">Settings</button>
+                        <button className="nav-btn" onClick={logout}>
+                            Logout
+                        </button>
                     </div>
                 </div>
 
