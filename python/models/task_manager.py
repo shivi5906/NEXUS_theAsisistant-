@@ -353,21 +353,34 @@ Remember: Small, clear, actionable steps. Each subtask = 15-30 minutes max.""")
     # ========================================================================
     
     def _store_task(self, task: Task):
-        """Store task in ChromaDB"""
-        task_dict = task.to_dict()
-        
-        # Create searchable document (for RAG retrieval)
-        document = f"""Task: {task.title}
-Description: {task.description}
-Priority: {task.priority.value}
-Context: {task.context or 'None'}
-Subtasks: {', '.join([st.title for st in task.subtasks])}"""
-        
-        self.tasks_collection.add(
-            documents=[document],
-            metadatas=[task_dict],
-            ids=[task.id]
-        )
+     """Store task in ChromaDB"""
+     task_dict = task.to_dict()
+    
+    # Create searchable document
+     document = f"""Task: {task.title}
+    Description: {task.description}
+    Priority: {task.priority.value}
+    Context: {task.context or 'None'}
+    Subtasks: {', '.join([st.title for st in task.subtasks])}"""
+    
+    # FLATTEN metadata for ChromaDB (remove nested structures)
+     flat_metadata = {
+        'id': task_dict['id'],
+        'title': task_dict['title'],
+        'description': task_dict['description'],
+        'priority': task_dict['priority'],
+        'status': task_dict['status'],
+        'created_at': task_dict['created_at'],
+        'context': task_dict.get('context') or '',
+        'tags': ','.join(task_dict.get('tags', [])),  # Convert list to string
+        'subtasks_json': json.dumps(task_dict['subtasks'])  # Store as JSON string
+    }
+    
+     self.tasks_collection.add(
+        documents=[document],
+        metadatas=[flat_metadata],
+        ids=[task.id]
+    )
     
     def get_task(self, task_id: str) -> Optional[Task]:
         """Retrieve a task by ID"""
