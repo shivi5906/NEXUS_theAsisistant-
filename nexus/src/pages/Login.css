@@ -1,0 +1,74 @@
+/* Login Page */
+.login-screen {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top, #0b1220, #020617);
+}
+
+.login-card {
+    width: 360px;
+    padding: 28px;
+    border-radius: 16px;
+
+    background: linear-gradient(145deg,
+            rgba(17, 24, 39, 0.95),
+            rgba(2, 6, 23, 0.95));
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+
+    text-align: center;
+}
+
+.login-title {
+    letter-spacing: 4px;
+    margin-bottom: 8px;
+    text-shadow:
+        0 0 16px rgba(99, 102, 241, 0.8);
+}
+
+.login-sub {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-bottom: 24px;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+
+    background: linear-gradient(145deg,
+            rgba(99, 102, 241, 0.9),
+            rgba(56, 189, 248, 0.9));
+
+    border: none;
+    color: #020617;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.login-card.loading {
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.login-card.loading::after {
+    content: "";
+    margin-top: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #60a5fa;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
